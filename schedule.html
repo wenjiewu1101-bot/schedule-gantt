@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>素材排期甘特图 - 网易素材制片</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        /* 网易配色方案 */
+        :root {
+            --netease-red: #D33A31;
+            --netease-red-light: #E8554D;
+            --netease-red-dark: #B82E26;
+            --netease-gray: #666;
+            --netease-gray-light: #999;
+            --netease-bg: #f5f5f5;
+            --netease-border: #e6e6e6;
+        }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", Roboto, sans-serif;
+            background: var(--netease-bg);
+            padding: 20px;
+            min-height: 100vh;
+            color: #333;
+        }
+        .container { 
+            max-width: 1400px; 
+            margin: 0 auto; 
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        
+        /* Header - 网易红 */
+        .header {
+            background: linear-gradient(135deg, var(--netease-red) 0%, var(--netease-red-dark) 100%);
+            color: white;
+            padding: 24px 32px;
+        }
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+        .header h1 { 
+            font-size: 24px; 
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .header h1::before {
+            content: '';
+            width: 4px;
+            height: 28px;
+            background: white;
+            border-radius: 2px;
+        }
+        
+        .info-cards {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 16px;
+        }
+        .info-card {
+            background: rgba(255,255,255,0.15);
+            padding: 14px 16px;
+            border-radius: 6px;
+        }
+        .info-card label { 
+            font-size: 12px; 
+            color: rgba(255,255,255,0.8); 
+            display: block; 
+            margin-bottom: 6px;
+        }
+        .info-card span { 
+            font-size: 16px; 
+            font-weight: 600;
+        }
+        .info-card.editable { cursor: pointer; transition: background 0.2s; }
+        .info-card.editable:hover { background: rgba(255,255,255,0.25); }
+        
+        /* Gantt Chart */
+        .gantt-section {
+            padding: 24px 32px;
+        }
+        .gantt-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--netease-border);
+        }
+        .gantt-header h2 {
+            font-size: 18px;
+            color: #333;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .gantt-header .add-btn {
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid var(--netease-red);
+            color: var(--netease-red);
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .gantt-header .add-btn:hover {
+            background: var(--netease-red);
+            color: white;
+        }
+        .gantt-header .tip {
+            font-size: 12px;
+            color: var(--netease-gray-light);
+            margin-left: 12px;
+        }
+        
+        .gantt-legend {
+            display: flex;
+            gap: 20px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--netease-gray);
+        }
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+        
+        .gantt-wrapper {
+            overflow-x: auto;
+            padding-bottom: 16px;
+        }
+        .gantt {
+            min-width: 1200px;
+            position: relative;
+        }
+        
+        .gantt-timeline {
+            display: flex;
+            border-bottom: 2px solid var(--netease-red);
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+            padding-left: 300px;
+        }
+        .gantt-timeline-date {
+            flex: 1;
+            text-align: center;
+            font-size: 12px;
+            color: var(--netease-gray-light);
+            font-weight: 500;
+            min-width: 40px;
+        }
+        .gantt-timeline-date.weekend { color: var(--netease-red); }
+        .gantt-timeline-date.today { 
+            color: var(--netease-red); 
+            font-weight: 700;
+        }
+        
+        .gantt-rows {
+            position: relative;
+        }
+        
+        .gantt-row {
+            display: flex;
+            align-items: center;
+            height: 52px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: move;
+        }
+        .gantt-row:hover { background: #fafafa; }
+        .gantt-row.drag-over {
+            border-top: 2px solid var(--netease-red);
+            background: #fff5f5;
+        }
+        .gantt-row.dragging {
+            opacity: 0.5;
+            background: #f5f5f5;
+        }
+        
+        .gantt-label {
+            width: 280px;
+            flex-shrink: 0;
+            padding-right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            overflow: hidden;
+        }
+        .drag-handle {
+            cursor: grab;
+            color: #ccc;
+            font-size: 14px;
+            padding: 4px;
+        }
+        .drag-handle:hover {
+            color: var(--netease-red);
+        }
+        .gantt-label .name {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .gantt-label .row-actions {
+            display: none;
+            gap: 4px;
+        }
+        .gantt-label .row-actions a {
+            font-size: 12px;
+            text-decoration: none;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+        .gantt-label .row-actions a:hover {
+            opacity: 1;
+        }
+        .gantt-row:hover .row-actions {
+            display: flex;
+        }
+        .gantt-label .date-info {
+            font-size: 12px;
+            color: var(--netease-gray-light);
+            margin-top: 4px;
+            display: flex;
+            gap: 8px;
+        }
+        .gantt-label .date-info span {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        
+        .gantt-bar-wrapper {
+            flex: 1;
+            position: relative;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+        }
+        
+        .gantt-bar {
+            position: absolute;
+            height: 32px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 500;
+            color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+            cursor: grab;
+            user-select: none;
+            transition: box-shadow 0.2s, transform 0.1s;
+        }
+        .gantt-bar:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+        .gantt-bar.dragging {
+            cursor: grabbing;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            transform: scale(1.02);
+            z-index: 100;
+        }
+        /* 网易风格配色 */
+        .gantt-bar.planning { background: var(--netease-red); }
+        .gantt-bar.execution { background: #E8554D; }
+        .gantt-bar.review { background: #4A90D9; }
+        .gantt-bar.delivery { background: #7AB338; }
+        
+        .gantt-bar .bar-label {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding: 0 8px;
+        }
+        
+        /* 今日线 */
+        .gantt-today {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--netease-red);
+            z-index: 10;
+        }
+        .gantt-today::before {
+            content: '今日';
+            position: absolute;
+            top: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: white;
+            font-weight: 600;
+            white-space: nowrap;
+            background: var(--netease-red);
+            padding: 2px 8px;
+            border-radius: 3px;
+        }
+        
+        /* 拖动调整手柄 */
+        .gantt-bar .resize-handle {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 8px;
+            cursor: ew-resize;
+            background: transparent;
+        }
+        .gantt-bar .resize-handle.left { left: 0; }
+        .gantt-bar .resize-handle.right { right: 0; }
+        .gantt-bar .resize-handle:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        /* Footer Stats */
+        .gantt-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 32px;
+            background: #fafafa;
+            border-top: 1px solid var(--netease-border);
+        }
+        .footer-stats {
+            display: flex;
+            gap: 32px;
+        }
+        .stat-item {
+            font-size: 13px;
+            color: var(--netease-gray);
+        }
+        .stat-item strong {
+            color: #333;
+            margin-left: 6px;
+        }
+        
+        .footer-actions {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary { 
+            background: var(--netease-red); 
+            color: white; 
+        }
+        .btn-primary:hover { 
+            background: var(--netease-red-dark); 
+        }
+        .btn-secondary { 
+            background: white; 
+            color: #666;
+            border: 1px solid var(--netease-border);
+        }
+        .btn-secondary:hover { 
+            background: #f5f5f5; 
+        }
+        
+        .share-box, .export-box {
+            padding: 16px 32px;
+            background: #f0f7ed;
+            display: none;
+        }
+        .share-box.show, .export-box.show { display: block; }
+        .share-box label, .export-box label {
+            font-size: 13px;
+            color: #5a8c2a;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .share-box input, .export-box textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #c5e0b8;
+            border-radius: 4px;
+            font-size: 13px;
+            background: white;
+            font-family: monospace;
+            white-space: pre-wrap;
+            min-height: 200px;
+        }
+        
+        /* 页脚 */
+        .footer {
+            padding: 12px 32px;
+            background: #f8f8f8;
+            text-align: center;
+            font-size: 12px;
+            color: var(--netease-gray-light);
+        }
+        
+        @media (max-width: 768px) {
+            .info-cards { grid-template-columns: repeat(2, 1fr); }
+            .gantt-header { flex-direction: column; gap: 16px; align-items: flex-start; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-top">
+                <h1>素材排期甘特图</h1>
+            </div>
+            <div class="info-cards">
+                <div class="info-card editable" onclick="editField('projectId')">
+                    <label>需求编号</label>
+                    <span id="projectId">-</span>
+                </div>
+                <div class="info-card editable" onclick="editField('productName')">
+                    <label>产品名称</label>
+                    <span id="productName">-</span>
+                </div>
+                <div class="info-card editable" onclick="editField('coordinator')">
+                    <label>统筹人</label>
+                    <span id="coordinator">-</span>
+                </div>
+                <div class="info-card">
+                    <label>预估人天</label>
+                    <span id="estimatedDays">-</span>
+                </div>
+                <div class="info-card">
+                    <label>制作周期</label>
+                    <span id="制作周期">-</span>
+                </div>
+                <div class="info-card editable" onclick="editField('deliveryDate')">
+                    <label>期望交付</label>
+                    <span id="deliveryDate">-</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="gantt-section">
+            <div class="gantt-header">
+                <div>
+                    <h2>关键里程碑</h2>
+                    <span class="tip">💡 拖动左侧 ⋮⋮ 可调整顺序</span>
+                </div>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <div class="gantt-legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #D33A31"></div>
+                            <span>策划</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #E8554D"></div>
+                            <span>执行</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #4A90D9"></div>
+                            <span>审核</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #7AB338"></div>
+                            <span>交付</span>
+                        </div>
+                    </div>
+                    <button class="add-btn" onclick="addMilestone()">+ 添加里程碑</button>
+                </div>
+            </div>
+            
+            <div class="gantt-wrapper">
+                <div class="gantt">
+                    <div class="gantt-timeline" id="ganttTimeline"></div>
+                    <div class="gantt-rows" id="ganttRows"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="gantt-footer">
+            <div class="footer-stats">
+                <div class="stat-item">开始日期: <strong id="startDateDisplay">-</strong></div>
+                <div class="stat-item">结束日期: <strong id="endDateDisplay">-</strong></div>
+                <div class="stat-item">总工期: <strong id="totalDaysDisplay">-</strong></div>
+            </div>
+            <div class="footer-actions">
+                <button class="btn btn-secondary" onclick="generateTextSchedule()">📝 生成文字排期</button>
+                <button class="btn btn-primary" onclick="generateShareLink()">🔗 生成分享链接</button>
+            </div>
+        </div>
+        
+        <div class="export-box" id="exportBox">
+            <label>📋 文字排期（可直接复制）：</label>
+            <textarea id="exportText" readonly onclick="this.select()"></textarea>
+        </div>
+        
+        <div class="share-box" id="shareBox">
+            <label>🔗 分享链接（复制发送给其他人）：</label>
+            <input type="text" id="shareUrl" readonly onclick="this.select()">
+        </div>
+        
+        <div class="footer">
+            网易素材制片助手 · AI数字化排期
+        </div>
+    </div>
+
+    <script>
+        // 默认数据 - 正排顺序
+        let scheduleData = {
+            projectId: 'Feb#059',
+            productName: '萤火突击',
+            estimatedDays: '3人天',
+            制作周期: '约9天',
+            urgency: '紧急',
+            coordinator: '营销策划',
+            startDate: '2026-03-19',
+            deliveryDate: '2026-03-27',
+            milestones: [
+                { id: 1, name: '需求立项', start: 0, duration: 1, type: 'planning', desc: '✓ 标准1天' },
+                { id: 2, name: '创意策划', start: 1, duration: 1, type: 'planning', desc: '脚本、分镜' },
+                { id: 3, name: '创意确认', start: 2, duration: 1, type: 'planning', desc: '确认创意方向' },
+                { id: 4, name: '执行制作', start: 3, duration: 4, type: 'execution', desc: 'AI生成+实机剪辑' },
+                { id: 5, name: 'ACO/初稿', start: 7, duration: 1, type: 'review', desc: '分镜/线稿' },
+                { id: 6, name: 'BCO/过程稿', start: 8, duration: 1, type: 'review', desc: '色稿/成稿' },
+                { id: 7, name: '最终交付', start: 9, duration: 1, type: 'delivery', desc: '✓ 交付日' }
+            ]
+        };
+
+        let dragState = {
+            isDragging: false,
+            isResizing: false,
+            bar: null,
+            startX: 0,
+            originalStart: 0,
+            originalDuration: 0,
+            resizeDirection: ''
+        };
+
+        let dragReorder = {
+            isDragging: false,
+            draggedIdx: null,
+            targetIdx: null
+        };
+
+        // 从 URL 读取数据
+        function getDataFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            const dataParam = params.get('data');
+            if (dataParam) {
+                try {
+                    return JSON.parse(decodeURIComponent(dataParam));
+                } catch (e) {
+                    console.error('Failed to parse data:', e);
+                }
+            }
+            return JSON.parse(JSON.stringify(scheduleData));
+        }
+
+        // 格式化日期
+        function formatDate(date) {
+            return `${date.getMonth() + 1}/${date.getDate()}`;
+        }
+
+        function getDateStr(date) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        // 渲染时间轴
+        function renderTimeline() {
+            const timeline = document.getElementById('ganttTimeline');
+            
+            // 找到最晚结束日期
+            const latestEnd = Math.max(...scheduleData.milestones.map(m => m.start + m.duration));
+            const totalDays = latestEnd;
+            
+            // 开始日期固定
+            const startDate = new Date(scheduleData.startDate || '2026-03-19');
+            
+            let html = '';
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            
+            // 渲染日期
+            for (let i = 0; i < totalDays; i++) {
+                const d = new Date(startDate);
+                d.setDate(d.getDate() + i);
+                const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+                const isToday = d.getTime() === today.getTime();
+                
+                let classes = 'gantt-timeline-date';
+                if (isWeekend) classes += ' weekend';
+                if (isToday) classes += ' today';
+                
+                html += `<div class="${classes}">${formatDate(d)}</div>`;
+            }
+            timeline.innerHTML = html;
+        }
+
+        // 渲染甘特图
+        function renderGantt() {
+            const rows = document.getElementById('ganttRows');
+            
+            // 找到最晚结束
+            const latestEnd = Math.max(...scheduleData.milestones.map(m => m.start + m.duration));
+            const totalDays = latestEnd;
+            
+            // 开始日期固定
+            const startDate = new Date(scheduleData.startDate || '2026-03-19');
+            
+            // 计算今天的相对位置
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const todayOffset = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+            
+            let html = '';
+            
+            // 今日线
+            if (todayOffset >= 0 && todayOffset < totalDays) {
+                const todayLeft = 300 + (todayOffset / totalDays) * 100;
+                html += `<div class="gantt-today" style="left: ${todayLeft}%"></div>`;
+            }
+
+            scheduleData.milestones.forEach((m, idx) => {
+                const leftPercent = (m.start / totalDays) * 100;
+                const widthPercent = (m.duration / totalDays) * 100;
+                
+                // 计算实际日期
+                const mStartDate = new Date(startDate);
+                mStartDate.setDate(mStartDate.getDate() + m.start);
+                
+                html += `
+                    <div class="gantt-row">
+                        <div class="gantt-label">
+                            <span class="drag-handle" 
+                                  draggable="true" 
+                                  ondragstart="onDragReorderStart(event, ${idx})"
+                                  ondragover="onDragReorderOver(event, ${idx})"
+                                  ondrop="onDragReorderDrop(event, ${idx})"
+                                  ondragend="onDragReorderEnd(event)"
+                                  title="拖动调整顺序">⋮⋮</span>
+                            <div class="name">
+                                <span>${m.name}</span>
+                                <span class="row-actions">
+                                    <a href="javascript:editMilestone(${idx})" title="编辑">✏️</a>
+                                    <a href="javascript:deleteMilestone(${idx})" title="删除">🗑️</a>
+                                </span>
+                            </div>
+                            <div class="date-info">
+                                <span>${getDateStr(mStartDate)}</span>
+                                <span>${m.duration}天</span>
+                            </div>
+                        </div>
+                        <div class="gantt-bar-wrapper">
+                            <div class="gantt-bar ${m.type}" 
+                                 data-idx="${idx}"
+                                 style="left: calc(${leftPercent}% + 10px); width: calc(${widthPercent}% - 20px);"
+                                 onmousedown="startDrag(event, ${idx})">
+                                <div class="resize-handle left" onmousedown="startResize(event, ${idx}, 'left')"></div>
+                                <span class="bar-label">${m.desc}</span>
+                                <div class="resize-handle right" onmousedown="startResize(event, ${idx}, 'right')"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            rows.innerHTML = html;
+        }
+
+        // 渲染页面
+        function render() {
+            document.getElementById('projectId').textContent = scheduleData.projectId || '-';
+            document.getElementById('productName').textContent = scheduleData.productName || '-';
+            document.getElementById('coordinator').textContent = scheduleData.coordinator || '-';
+            document.getElementById('estimatedDays').textContent = scheduleData.estimatedDays || '-';
+            document.getElementById('制作周期').textContent = scheduleData.制作周期 || '-';
+            document.getElementById('deliveryDate').textContent = scheduleData.deliveryDate || '-';
+            
+            renderTimeline();
+            renderGantt();
+            updateTotalPeriod();
+        }
+
+        // 更新总工期
+        function updateTotalPeriod() {
+            const latestEnd = Math.max(...scheduleData.milestones.map(m => m.start + m.duration));
+            const totalDays = latestEnd;
+            
+            const startDate = new Date(scheduleData.startDate || '2026-03-19');
+            const endDate = new Date(scheduleData.deliveryDate);
+            
+            document.getElementById('startDateDisplay').textContent = getDateStr(startDate);
+            document.getElementById('endDateDisplay').textContent = getDateStr(endDate);
+            document.getElementById('totalDaysDisplay').textContent = `${totalDays}天`;
+            document.getElementById('deliveryDate').textContent = scheduleData.deliveryDate;
+            scheduleData.制作周期 = `约${totalDays}天`;
+            document.getElementById('制作周期').textContent = scheduleData.制作周期;
+        }
+
+        // 拖动开始
+        function startDrag(e, idx) {
+            if (e.target.classList.contains('resize-handle')) return;
+            
+            dragState.isDragging = true;
+            dragState.bar = e.currentTarget;
+            dragState.startX = e.clientX;
+            dragState.originalStart = scheduleData.milestones[idx].start;
+            
+            dragState.bar.classList.add('dragging');
+            document.addEventListener('mousemove', onDrag);
+            document.addEventListener('mouseup', endDrag);
+        }
+
+        function onDrag(e) {
+            if (!dragState.isDragging) return;
+            
+            const wrapper = document.querySelector('.gantt-bar-wrapper');
+            const wrapperRect = wrapper.getBoundingClientRect();
+            
+            let latestEnd = Math.max(...scheduleData.milestones.map(m => m.start + m.duration));
+            const totalDays = latestEnd;
+            
+            const deltaX = e.clientX - dragState.startX;
+            const deltaDays = Math.round((deltaX / wrapperRect.width) * totalDays);
+            
+            const idx = parseInt(dragState.bar.dataset.idx);
+            let newStart = dragState.originalStart + deltaDays;
+            
+            // 限制范围：不能为负
+            newStart = Math.max(0, newStart);
+            
+            scheduleData.milestones[idx].start = newStart;
+            
+            // 检查是否需要扩展时间轴（向右扩展）
+            latestEnd = Math.max(...scheduleData.milestones.map(m => m.start + m.duration));
+            if (latestEnd > totalDays) {
+                // 扩展了，向右增加天数
+                const daysToAdd = latestEnd - totalDays;
+                const newEndDate = new Date(scheduleData.deliveryDate);
+                newEndDate.setDate(newEndDate.getDate() + daysToAdd);
+                scheduleData.deliveryDate = getDateStr(newEndDate);
+                scheduleData.制作周期 = `约${latestEnd}天`;
+            }
+            
+            render();
+        }
+
+        function endDrag() {
+            if (dragState.isDragging) {
+                dragState.bar.classList.remove('dragging');
+                dragState.isDragging = false;
+                document.removeEventListener('mousemove', onDrag);
+                document.removeEventListener('mouseup', endDrag);
+            }
+        }
+
+        // 调整工期
+        function startResize(e, idx, direction) {
+            e.stopPropagation();
+            dragState.isResizing = true;
+            dragState.bar = e.target.parentElement;
+            dragState.startX = e.clientX;
+            dragState.originalDuration = scheduleData.milestones[idx].duration;
+            dragState.resizeDirection = direction;
+            dragState.idx = idx;
+            
+            document.addEventListener('mousemove', onResize);
+            document.addEventListener('mouseup', endResize);
+        }
+
+        function onResize(e) {
+            if (!dragState.isResizing) return;
+            
+            const wrapper = document.querySelector('.gantt-bar-wrapper');
+            const wrapperRect = wrapper.getBoundingClientRect();
+            
+            let totalDays = Math.max(...scheduleData.milestones.map(m => m.start + m.duration));
+            
+            const deltaX = e.clientX - dragState.startX;
+            const deltaDays = Math.round((deltaX / wrapperRect.width) * totalDays);
+            
+            const idx = dragState.idx;
+            let newDuration = dragState.originalDuration;
+            
+            if (dragState.resizeDirection === 'right') {
+                newDuration = Math.max(1, dragState.originalDuration + deltaDays);
+            }
+            
+            scheduleData.milestones[idx].duration = newDuration;
+            
+            // 检查是否需要扩展时间轴（向右扩展）
+            const newLatestEnd = Math.max(...scheduleData.milestones.map(m => m.start + m.duration));
+            if (newLatestEnd > totalDays) {
+                const daysToAdd = newLatestEnd - totalDays;
+                const newEndDate = new Date(scheduleData.deliveryDate);
+                newEndDate.setDate(newEndDate.getDate() + daysToAdd);
+                scheduleData.deliveryDate = getDateStr(newEndDate);
+                scheduleData.制作周期 = `约${newLatestEnd}天`;
+            }
+            
+            render();
+        }
+
+        function endResize() {
+            dragState.isResizing = false;
+            document.removeEventListener('mousemove', onResize);
+            document.removeEventListener('mouseup', endResize);
+        }
+
+        // 编辑字段
+        function editField(field) {
+            const currentValue = scheduleData[field];
+            const newValue = prompt(`请输入 ${field}:`, currentValue);
+            if (newValue !== null && newValue !== currentValue) {
+                scheduleData[field] = newValue;
+                render();
+            }
+        }
+
+        // 添加里程碑
+        function addMilestone() {
+            const name = prompt('请输入里程碑名称（如：视频剪辑、配音等）:');
+            if (!name) return;
+            
+            const type = prompt('请输入类型（planning/execution/review/delivery）:', 'execution');
+            const duration = parseInt(prompt('请输入工期（天）:', '2')) || 2;
+            
+            // 计算新里程碑的位置：放在最后一个之后
+            const latestEnd = Math.max(...scheduleData.milestones.map(m => m.start + m.duration));
+            
+            const newMilestone = {
+                id: Date.now(),
+                name: name,
+                start: latestEnd,
+                duration: duration,
+                type: type,
+                desc: `${duration}天`
+            };
+            
+            scheduleData.milestones.push(newMilestone);
+            
+            // 更新交付日
+            const newLatestEnd = latestEnd + duration;
+            const newEndDate = new Date(scheduleData.deliveryDate);
+            newEndDate.setDate(newEndDate.getDate() + duration);
+            scheduleData.deliveryDate = getDateStr(newEndDate);
+            scheduleData.制作周期 = `约${newLatestEnd}天`;
+            
+            render();
+        }
+
+        // 删除里程碑
+        function deleteMilestone(idx) {
+            if (scheduleData.milestones.length <= 1) {
+                alert('至少需要保留一个里程碑');
+                return;
+            }
+            
+            if (!confirm(`确定要删除"${scheduleData.milestones[idx].name}"吗？`)) return;
+            
+            scheduleData.milestones.splice(idx, 1);
+            render();
+        }
+
+        // 拖动排序 - 开始
+        function onDragReorderStart(e, idx) {
+            dragReorder.isDragging = true;
+            dragReorder.draggedIdx = idx;
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        // 拖动排序 - 经过
+        function onDragReorderOver(e, idx) {
+            if (!dragReorder.isDragging) return;
+            e.preventDefault();
+            
+            // 移除之前的样式
+            document.querySelectorAll('.gantt-row.drag-over').forEach(el => {
+                if (el.dataset.idx != dragReorder.draggedIdx) {
+                    el.classList.remove('drag-over');
+                }
+            });
+            
+            if (idx !== dragReorder.draggedIdx) {
+                e.currentTarget.classList.add('drag-over');
+                dragReorder.targetIdx = idx;
+            }
+        }
+
+        // 拖动排序 - 放置
+        function onDragReorderDrop(e, idx) {
+            e.preventDefault();
+            if (!dragReorder.isDragging) return;
+            
+            const draggedIdx = dragReorder.draggedIdx;
+            const targetIdx = idx;
+            
+            if (draggedIdx !== targetIdx) {
+                // 获取被拖动的项
+                const [removed] = scheduleData.milestones.splice(draggedIdx, 1);
+                // 插入到目标位置
+                scheduleData.milestones.splice(targetIdx, 0, removed);
+                
+                // 重新计算位置
+                recalculatePositions();
+            }
+            
+            render();
+        }
+
+        // 拖动排序 - 结束
+        function onDragReorderEnd(e) {
+            document.querySelectorAll('.gantt-row').forEach(el => {
+                el.classList.remove('dragging', 'drag-over');
+            });
+            dragReorder.isDragging = false;
+            dragReorder.draggedIdx = null;
+            dragReorder.targetIdx = null;
+        }
+
+        // 重新计算位置
+        function recalculatePositions() {
+            let currentStart = 0;
+            for (const m of scheduleData.milestones) {
+                m.start = currentStart;
+                currentStart += m.duration;
+            }
+            
+            // 更新交付日
+            const latestEnd = currentStart;
+            const startDate = new Date(scheduleData.startDate);
+            const newEndDate = new Date(startDate);
+            newEndDate.setDate(newEndDate.getDate() + latestEnd);
+            scheduleData.deliveryDate = getDateStr(newEndDate);
+            scheduleData.制作周期 = `约${latestEnd}天`;
+        }
+
+        // 编辑里程碑
+        function editMilestone(idx) {
+            const m = scheduleData.milestones[idx];
+            const name = prompt('里程碑名称:', m.name);
+            if (name === null) return;
+            
+            const duration = parseInt(prompt('工期（天）:', m.duration.toString()));
+            if (isNaN(duration) || duration < 1) return;
+            
+            const type = prompt('类型（planning/execution/review/delivery）:', m.type);
+            
+            m.name = name;
+            m.duration = duration;
+            m.type = type;
+            m.desc = `${duration}天`;
+            
+            // 重新计算交付日
+            const latestEnd = Math.max(...scheduleData.milestones.map(mi => mi.start + mi.duration));
+            const daysDiff = latestEnd - (m.start + parseInt(m.duration));
+            
+            if (daysDiff > 0) {
+                const newEndDate = new Date(scheduleData.deliveryDate);
+                newEndDate.setDate(newEndDate.getDate() + daysDiff);
+                scheduleData.deliveryDate = getDateStr(newEndDate);
+            }
+            
+            scheduleData.制作周期 = `约${latestEnd}天`;
+            
+            render();
+        }
+
+        // 生成分享链接
+        function generateShareLink() {
+            // 隐藏导出框
+            document.getElementById('exportBox').classList.remove('show');
+            
+            const encoded = encodeURIComponent(JSON.stringify(scheduleData));
+            const url = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
+            
+            document.getElementById('shareUrl').value = url;
+            document.getElementById('shareBox').classList.add('show');
+            document.getElementById('shareUrl').select();
+        }
+
+        // 生成文字排期
+        function generateTextSchedule() {
+            // 隐藏分享框
+            document.getElementById('shareBox').classList.remove('show');
+            
+            const projectName = scheduleData.productName || '项目';
+            const deliveryDate = scheduleData.deliveryDate || '-';
+            const coordinator = scheduleData.coordinator || prompt('请输入统筹人姓名:', '营销策划') || '营销策划';
+            
+            // 判断状态（根据交付日期）
+            const today = new Date();
+            const delivery = new Date(deliveryDate);
+            const daysLeft = Math.ceil((delivery - today) / (1000 * 60 * 60 * 24));
+            const status = daysLeft < 3 ? '🔴 緊急項目' : '🟢 正常推進';
+            
+            // 按类型分组里程碑
+            const planning = scheduleData.milestones.filter(m => m.type === 'planning');
+            const execution = scheduleData.milestones.filter(m => m.type === 'execution');
+            const review = scheduleData.milestones.filter(m => m.type === 'review');
+            const deliveryMilestones = scheduleData.milestones.filter(m => m.type === 'delivery');
+            
+            const startDate = new Date(scheduleData.startDate);
+            
+            let text = `【${projectName}】\n`;
+            text += `> 整体状态：${status} | 最终交付：${deliveryDate} | 统筹人：${coordinator}\n\n`;
+            text += `--- 📅 核心节点与资源分配 ---\n\n`;
+            
+            // 阶段一：规划
+            if (planning.length > 0) {
+                text += `### 阶段一：前置规划与需求对齐 (Planning)\n`;
+                planning.forEach(m => {
+                    const date = new Date(startDate);
+                    date.setDate(date.getDate() + m.start);
+                    const dateStr = `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`;
+                    text += `${dateStr} - ${m.name}\n`;
+                });
+                text += '\n';
+            }
+            
+            // 阶段二：执行
+            if (execution.length > 0) {
+                text += `### 阶段二：执行规划\n`;
+                execution.forEach((m, i) => {
+                    const date = new Date(startDate);
+                    date.setDate(date.getDate() + m.start);
+                    const dateStr = `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`;
+                    text += `${dateStr} - ${m.name}\n`;
+                });
+                text += '\n';
+            }
+            
+            // 阶段三：审核+交付
+            const reviewDelivery = [...review, ...deliveryMilestones];
+            if (reviewDelivery.length > 0) {
+                text += `### 阶段三：里程碑核查和进度交付\n`;
+                reviewDelivery.forEach((m, i) => {
+                    const date = new Date(startDate);
+                    date.setDate(date.getDate() + m.start);
+                    const dateStr = `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}`;
+                    text += `${dateStr} - ${m.name}\n`;
+                });
+                text += '\n';
+            }
+            
+            // 风险
+            text += `--- ⚠️ 风险与关键决策 (Risk Log) ---\n`;
+            text += `* 暂无异常。\n`;
+            text += `* (若有阻塞，按此格式记录：风险点描述 + 当前责任人 + 期望解决期限)`;
+            
+            document.getElementById('exportText').value = text;
+            document.getElementById('exportBox').classList.add('show');
+            document.getElementById('exportText').select();
+        }
+
+        // 初始化
+        scheduleData = getDataFromUrl();
+        render();
+    </script>
+</body>
+</html>
