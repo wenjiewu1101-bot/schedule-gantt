@@ -232,7 +232,7 @@
             height: 100%;
             display: flex;
             align-items: center;
-            padding: 0 10px;
+            /* padding: 0 10px; 移除 padding 以免影响绝对定位 */
             min-width: 600px;
         }
         
@@ -536,16 +536,16 @@
             
             let html = '';
             
-            // 今日线 - 使用固定的 300px 偏移量
+            // 今日线 - 使用固定的 60px 格子宽度（不需要加 300px，因为甘特条在 wrapper 内）
             const timelineWidth = totalDays * 60; // 每个格子 60px
             if (todayOffset >= 0 && todayOffset < totalDays) {
-                const todayLeft = 300 + (todayOffset * 60);
+                const todayLeft = todayOffset * 60;
                 html += `<div class="gantt-today" style="left: ${todayLeft}px"></div>`;
             }
 
             scheduleData.milestones.forEach((m, idx) => {
-                // 使用固定宽度计算：300px + (start * 60px)
-                const leftPos = 300 + (m.start * 60);
+                // 使用固定宽度计算：start * 60px（甘特条在 wrapper 内，wrapper 左边已经和时间轴对齐）
+                const leftPos = m.start * 60;
                 const widthPos = m.duration * 60;
                 
                 const mStartDate = new Date(startDate);
